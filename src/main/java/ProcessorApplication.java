@@ -28,7 +28,7 @@ public class ProcessorApplication {
     public static void main(String[] args) throws InterruptedException {
         Props props = new Props();
         Properties p = props.getProperties();
-        p.put(StreamsConfig.APPLICATION_ID_CONFIG, "processor_application");
+        p.put(StreamsConfig.APPLICATION_ID_CONFIG, "processor_application22313");
         StreamsConfig streamsConfig = new StreamsConfig(p);
 
         Serde<String> stringSerde = Serdes.String();
@@ -41,7 +41,7 @@ public class ProcessorApplication {
         Serde<TransactionPerformance> transactionPerformanceSerde = SerDeFactory.getPOJOSerde(TransactionPerformance.class);
 
         Topology topology = new Topology();
-        String transactionsStateStore = "transactions-state-store";
+        String transactionsStateStore = "transactions-state-store1112";
 
         String transactionSourceNodeName = "transaction-source";
         String transactionProcessorNodeName = "transaction-processor";
@@ -51,27 +51,29 @@ public class ProcessorApplication {
         bonus.put(1, new Merchant("Cafe&Restaraunt", 3000));
         bonus.put(2, new Merchant("E-Commerce", 5000));
         bonus.put(3, new Merchant("Supermarkets", 3000));
+        HashMap<String, Integer> bonusNum = new HashMap<String, Integer>();
+        bonusNum.put("Cafe&Restaraunt", 1);
+        bonusNum.put("E-Commerce", 2);
+        bonusNum.put("Supermarkets", 3);
 
-        KeyValueBytesStoreSupplier storeSupplier = Stores.inMemoryKeyValueStore(transactionsStateStore);
-        StoreBuilder<KeyValueStore<String, TransactionPerformance>> storeBuilder = Stores.keyValueStoreBuilder(storeSupplier, Serdes.String(), transactionPerformanceSerde);
+        KeyValueBytesStoreSupplier storeSupplier = Stores.inMemoryKeyValueStore(transactionsStateStore)
+                ;
+        StoreBuilder<KeyValueStore<String, TransactionPerformance>> storeBuilder =
+                Stores.keyValueStoreBuilder(storeSupplier, Serdes.String(), transactionPerformanceSerde);
 
 
         topology.addSource(transactionSourceNodeName, stringDeserializer, transactionDeserializer,"first_topic")
-                .addProcessor(transactionProcessorNodeName, () -> new TransactionProcessor(transactionsStateStore, bonus), transactionSourceNodeName)
+                .addProcessor(transactionProcessorNodeName, () -> new TransactionProcessor(transactionsStateStore, bonus,bonusNum), transactionSourceNodeName)
                 .addStateStore(storeBuilder,transactionProcessorNodeName)
                 .addSink(transactionSinkNodeName, "analytics", stringSerializer, transactionPerformanceSerializer, transactionProcessorNodeName);
 
 
-        //topology.addProcessor("stocks-printer", new KStreamPrinter("StockPerformance"), "stocks-processor");
-
         KafkaStreams kafkaStreams = new KafkaStreams(topology, streamsConfig);
-        //MockDataProducer.produceStockTransactionsWithKeyFunction(50,50, 25, StockTransaction::getSymbol);
         System.out.println("Stock Analysis App Started");
         kafkaStreams.cleanUp();
         kafkaStreams.start();
         Thread.sleep(70000);
         System.out.println("Shutting down the Stock Analysis App now");
         kafkaStreams.close();
-        //MockDataProducer.shutdown();
     }
 }

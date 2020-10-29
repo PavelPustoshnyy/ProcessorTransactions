@@ -27,15 +27,17 @@ public class TransactionPunctuator implements Punctuator {
     @Override
     public void punctuate(long timestamp) {
         KeyValueIterator<String, TransactionPerformance> performanceIterator = keyValueStore.all();
-
         while (performanceIterator.hasNext()) {
             KeyValue<String, TransactionPerformance> keyValue = performanceIterator.next();
             String key = keyValue.key;
             TransactionPerformance stockPerformance = keyValue.value;
 
             if (stockPerformance != null) {
-                if (stockPerformance.GetReqAmt() >= stockPerformance.GetBonus().get(stockPerformance.GetStepId()).GetCost()) {
+                if (this.bonus.containsKey(stockPerformance.GetStepId())
+                        && stockPerformance.GetReqAmt() >= this.bonus.get(stockPerformance.GetStepId()).GetCost()) {
                     context.forward(key, stockPerformance);
+                    System.out.println(key.toString());
+                    System.out.println(stockPerformance.toString());
                 }
             }
         }

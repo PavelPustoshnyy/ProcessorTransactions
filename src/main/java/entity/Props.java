@@ -12,8 +12,8 @@ public class Props {
     public Props() {
         this.props = new Properties();
         //props.put(StreamsConfig.APPLICATION_ID_CONFIG, "aggr3_driver_application");
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "aggr2_driver_group");
-        props.put(ConsumerConfig.CLIENT_ID_CONFIG, "aggr2_driver_client");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "aggr23driver_group");
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, "aggr32_driver_client");
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "5000");
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");

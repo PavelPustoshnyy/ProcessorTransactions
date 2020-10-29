@@ -2,44 +2,31 @@ package entity;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonSetter;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+
 
 public class TransactionPerformance {
     private String ClientPin;
     private Integer StepId;
     private String EventDttm;
     private Double AmtRur;
-    HashMap<Integer,Merchant> bonus = new HashMap<Integer, Merchant>();
 
-    public TransactionPerformance (String ClientPin, HashMap<Integer,Merchant> bonus){
-        this.ClientPin = ClientPin;
-        this.StepId = 1;
-        this.EventDttm = CalcDate();
-        this.AmtRur = 0.0;
-        this.bonus = bonus;
-    }
-    public TransactionPerformance (String ClientPin){
-        this.ClientPin=ClientPin;
-        this.StepId = 1;
-        this.EventDttm = CalcDate();
-        this.AmtRur = 0.00;
-        HashMap<Integer, Merchant> bonus = new HashMap<Integer, Merchant>();
-        bonus.put(1, new Merchant("Cafe&Restaraunt", 3000));
-        bonus.put(2, new Merchant("E-Commerce", 5000));
-        bonus.put(3, new Merchant("Supermarkets", 3000));
-    }
+    public TransactionPerformance() {}
 
-
-    public void Update(Double AmtRur) {
-        if (this.bonus.containsKey(this.StepId) & this.AmtRur >= bonus.get(this.StepId).GetCost()) {
+    public TransactionPerformance(Transaction transaction, Integer StepId) {
+            this.ClientPin = transaction.GetClientPin();
+            this.StepId = StepId;
+            this.EventDttm = CalcDate();
             this.AmtRur = 0.0;
-            this.StepId += 1;
-        }
-        this.AmtRur += AmtRur;
-        this.EventDttm = CalcDate();
+    }
+
+    public void Update(Transaction transaction) {
+            this.AmtRur += transaction.GetReqAmt();
+            this.EventDttm = CalcDate();
     }
 
     private String CalcDate() {
@@ -47,12 +34,34 @@ public class TransactionPerformance {
         Date date = new Date(System.currentTimeMillis());
         return formatter.format(date);
     }
+
     public Integer GetStepId() {
         return this.StepId;
     }
 
-    public HashMap<Integer,Merchant> GetBonus() {
-        return this.bonus;
+
+    @JsonAlias("client_pin")
+    @JsonSetter("client_pin")
+    public void setClientPin(String clientPin) {
+        this.ClientPin=clientPin;
+    }
+
+    @JsonAlias("amt_rur")
+    @JsonSetter("amt_rur")
+    public void setReqAmt(Double reqAmt) {
+        this.AmtRur=reqAmt;
+    }
+
+    @JsonAlias("step_id")
+    @JsonSetter("step_id")
+    public void setMerchant(Integer Merchant) {
+        this.StepId=Merchant;
+    }
+
+    @JsonAlias("event_dttm")
+    @JsonSetter("event_dttm")
+    public void setUTime(String EventDttm) {
+        this.EventDttm=EventDttm;
     }
 
     @JsonAlias("client_pin")
@@ -79,5 +88,11 @@ public class TransactionPerformance {
         return this.EventDttm;
     }
 
-
+    @Override
+    public String toString() {
+        return "{\"client_pin\":\"" + this.ClientPin +
+                "\",\"amt_rur\":" + this.AmtRur +
+                ",\"step_id\":\"" + this.StepId +
+                "\",\"event_dttm\":\"" + this.EventDttm + "\"}";
+    }
 }
