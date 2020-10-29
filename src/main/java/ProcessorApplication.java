@@ -22,6 +22,7 @@ import serdes.SerDeFactory;
 import static org.apache.kafka.streams.Topology.AutoOffsetReset.LATEST;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 public class ProcessorApplication {
@@ -41,7 +42,7 @@ public class ProcessorApplication {
         Serde<TransactionPerformance> transactionPerformanceSerde = SerDeFactory.getPOJOSerde(TransactionPerformance.class);
 
         Topology topology = new Topology();
-        String transactionsStateStore = "transactions-state-store1112";
+        String transactionsStateStore = "transactions-state-store251822";
 
         String transactionSourceNodeName = "transaction-source";
         String transactionProcessorNodeName = "transaction-processor";
@@ -56,10 +57,14 @@ public class ProcessorApplication {
         bonusNum.put("E-Commerce", 2);
         bonusNum.put("Supermarkets", 3);
 
+        Map<String, String> changeLogConfigs = new HashMap<>();
+        changeLogConfigs.put("retention.ms","70000" );
+        changeLogConfigs.put("cleanup.policy", "compact,delete");
+
         KeyValueBytesStoreSupplier storeSupplier = Stores.inMemoryKeyValueStore(transactionsStateStore)
                 ;
         StoreBuilder<KeyValueStore<String, TransactionPerformance>> storeBuilder =
-                Stores.keyValueStoreBuilder(storeSupplier, Serdes.String(), transactionPerformanceSerde);
+                Stores.keyValueStoreBuilder(storeSupplier, Serdes.String(), transactionPerformanceSerde).withLoggingEnabled(changeLogConfigs);
 
 
         topology.addSource(transactionSourceNodeName, stringDeserializer, transactionDeserializer,"first_topic")

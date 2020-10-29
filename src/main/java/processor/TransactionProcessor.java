@@ -5,9 +5,7 @@ import entity.Transaction;
 import entity.TransactionPerformance;
 import org.apache.kafka.streams.processor.AbstractProcessor;
 import org.apache.kafka.streams.processor.ProcessorContext;
-import org.apache.kafka.streams.processor.PunctuationType;
 import org.apache.kafka.streams.state.KeyValueStore;
-import punctuator.TransactionPunctuator;
 
 import java.util.HashMap;
 
@@ -28,11 +26,11 @@ public class TransactionProcessor extends AbstractProcessor<String, Transaction>
     public void init(ProcessorContext processorContext) {
         super.init(processorContext);
         keyValueStore = (KeyValueStore) context().getStateStore(stateStoreName);
-        TransactionPunctuator punctuator = new TransactionPunctuator(bonus,
-                context(),
-                keyValueStore);
+        //TransactionPunctuator punctuator = new TransactionPunctuator(bonus,
+            //    context(),
+         //       keyValueStore);
 
-        context().schedule(36000, PunctuationType.WALL_CLOCK_TIME, punctuator);
+       // context().schedule(36000, PunctuationType.WALL_CLOCK_TIME, punctuator);
     }
 
     private void Put(TransactionPerformance transactionPerformance) {
@@ -42,9 +40,14 @@ public class TransactionProcessor extends AbstractProcessor<String, Transaction>
 
     private void Update (TransactionPerformance transactionPerformance, Transaction transaction) {
         if (transactionPerformance.GetReqAmt() >= bonus.get(transactionPerformance.GetStepId()).GetCost()
-                && this.bonus.containsKey(transactionPerformance.GetStepId()+1)) {
+                && this.bonus.containsKey(transactionPerformance.GetStepId())) {
             System.out.println("Произошло достижение лимита");
-            transactionPerformance = new TransactionPerformance(transaction, transactionPerformance.GetStepId()+1);
+            context().forward(transactionPerformance.GetClientPin()+transactionPerformance.GetStepId().toString(),
+                    transactionPerformance);
+            if (transactionPerformance.GetReqAmt() >= bonus.get(transactionPerformance.GetStepId()).GetCost()
+                    && this.bonus.containsKey(transactionPerformance.GetStepId()+1)) {
+                transactionPerformance = new TransactionPerformance(transaction, transactionPerformance.GetStepId() + 1);
+            }
             System.out.println(transactionPerformance.toString());
             Put(transactionPerformance);
         }
