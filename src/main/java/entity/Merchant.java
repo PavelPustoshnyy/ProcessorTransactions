@@ -1,7 +1,5 @@
 package entity;
 
-import org.apache.kafka.common.protocol.types.Field;
-
 public class Merchant {
     private String type;
     private Integer cost;

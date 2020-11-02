@@ -7,29 +7,29 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.processor.UsePreviousTimeOnInvalidTimestamp;
+import org.apache.kafka.streams.processor.Processor;
+import org.apache.kafka.streams.processor.ProcessorSupplier;
 import org.apache.kafka.streams.state.KeyValueBytesStoreSupplier;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.StoreBuilder;
 import org.apache.kafka.streams.state.Stores;
 import processor.TransactionProcessor;
+import processor.TransactionSupplier;
 import serdes.JsonPOJODeserializer;
 import serdes.JsonPOJOSerializer;
 import serdes.SerDeFactory;
 
-import static org.apache.kafka.streams.Topology.AutoOffsetReset.LATEST;
-
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 
 public class ProcessorApplication {
     public static void main(String[] args) throws InterruptedException {
         Props props = new Props();
         Properties p = props.getProperties();
-        p.put(StreamsConfig.APPLICATION_ID_CONFIG, "processor_application22313");
+        p.put(StreamsConfig.APPLICATION_ID_CONFIG, "processor_application");
         StreamsConfig streamsConfig = new StreamsConfig(p);
 
         Serde<String> stringSerde = Serdes.String();
@@ -39,12 +39,18 @@ public class ProcessorApplication {
         Deserializer<Transaction> transactionDeserializer = new JsonPOJODeserializer<>(Transaction.class);
         Serializer<TransactionPerformance> transactionPerformanceSerializer = new JsonPOJOSerializer<>();
 
+        Serde<Transaction> transactionSerde = SerDeFactory.getPOJOSerde(Transaction.class);
         Serde<TransactionPerformance> transactionPerformanceSerde = SerDeFactory.getPOJOSerde(TransactionPerformance.class);
 
+        String inTopic = "first_topic";
+
         Topology topology = new Topology();
-        String transactionsStateStore = "transactions-state-store251822";
+
+        String transactionsKeyStateStore = "transactions-key-state-store";
+        String transactionsStateStore = "transactions-state-store22";
 
         String transactionSourceNodeName = "transaction-source";
+        String fakeProcessorNodeName = "transaction-key-processor";
         String transactionProcessorNodeName = "transaction-processor";
         String transactionSinkNodeName = "transaction-sink";
 
@@ -57,19 +63,22 @@ public class ProcessorApplication {
         bonusNum.put("E-Commerce", 2);
         bonusNum.put("Supermarkets", 3);
 
-        Map<String, String> changeLogConfigs = new HashMap<>();
-        changeLogConfigs.put("retention.ms","70000" );
-        changeLogConfigs.put("cleanup.policy", "compact,delete");
+        ProcessorSupplier<String, Transaction> transactionSupplier = new TransactionSupplier(transactionsKeyStateStore);
 
-        KeyValueBytesStoreSupplier storeSupplier = Stores.inMemoryKeyValueStore(transactionsStateStore)
-                ;
+
+        KeyValueBytesStoreSupplier storeKeySupplier = Stores.inMemoryKeyValueStore(transactionsKeyStateStore);
+        StoreBuilder<KeyValueStore<String, Transaction>> storeKeyBuilder =
+                Stores.keyValueStoreBuilder(storeKeySupplier, stringSerde, transactionSerde).withLoggingDisabled();
+
+        KeyValueBytesStoreSupplier storeSupplier = Stores.persistentKeyValueStore(transactionsStateStore);
         StoreBuilder<KeyValueStore<String, TransactionPerformance>> storeBuilder =
-                Stores.keyValueStoreBuilder(storeSupplier, Serdes.String(), transactionPerformanceSerde).withLoggingEnabled(changeLogConfigs);
+                Stores.keyValueStoreBuilder(storeSupplier, stringSerde, transactionPerformanceSerde);
 
-
-        topology.addSource(transactionSourceNodeName, stringDeserializer, transactionDeserializer,"first_topic")
-                .addProcessor(transactionProcessorNodeName, () -> new TransactionProcessor(transactionsStateStore, bonus,bonusNum), transactionSourceNodeName)
-                .addStateStore(storeBuilder,transactionProcessorNodeName)
+        topology.addGlobalStore(storeKeyBuilder, transactionSourceNodeName, stringDeserializer, transactionDeserializer,
+                inTopic, fakeProcessorNodeName, transactionSupplier)
+                .addProcessor(transactionProcessorNodeName, () -> new TransactionProcessor(transactionsStateStore, bonus, bonusNum),
+                        fakeProcessorNodeName)
+                .addStateStore(storeBuilder, transactionProcessorNodeName)
                 .addSink(transactionSinkNodeName, "analytics", stringSerializer, transactionPerformanceSerializer, transactionProcessorNodeName);
 
 

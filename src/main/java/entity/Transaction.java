@@ -3,7 +3,6 @@ package entity;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
-import org.apache.kafka.common.protocol.types.Field;
 
 import java.util.Objects;
 
